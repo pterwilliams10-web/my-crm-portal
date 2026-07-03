@@ -68,6 +68,35 @@
         </div>
     </main>
 
+    <!-- Floating Chat Widget Container -->
+<div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <!-- Chat Window (Hidden by default using 'hidden') -->
+    <div id="chatWindow" class="hidden w-80 h-96 bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col overflow-hidden mb-4">
+        <!-- Chat Header -->
+        <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+            <div>
+                <h4 class="font-bold text-sm">Internal CRM Chat</h4>
+                <p class="text-xs text-blue-100">Coordinate with agents</p>
+            </div>
+            <button id="closeChatBtn" class="text-white hover:text-gray-200 text-lg cursor-pointer">✕</button>
+        </div>
+        <!-- Chat Messages Screen -->
+        <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50 text-xs">
+            <!-- Messages will appear here dynamically -->
+        </div>
+        <!-- Chat Input Form -->
+        <div class="p-3 border-t border-gray-200 bg-white flex gap-2">
+            <input id="chatInput" type="text" placeholder="Type a message..." class="flex-1 px-3 py-1.5 border border-gray-300 rounded-xl text-sm focus:outline-blue-500">
+            <button id="sendChatBtn" class="bg-blue-600 text-white px-3 py-1.5 rounded-xl font-medium text-sm hover:bg-blue-700 cursor-pointer">Send</button>
+        </div>
+    </div>
+
+    <!-- Floating Chat Button Button -->
+    <button id="toggleChatBtn" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg flex items-center justify-center text-2xl cursor-pointer transition transform hover:scale-105">
+        💬
+    </button>
+</div>
+
     <!-- Link to our Brain (JavaScript File) -->
     <script src="app.js"></script>
 </body>

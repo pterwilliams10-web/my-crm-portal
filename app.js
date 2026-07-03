@@ -88,3 +88,65 @@ searchInput.addEventListener('input', renderTable);
 
 // Run on page startup
 renderTable();
+
+// --- CHAT SYSTEM FEATURES ---
+
+// Element Selectors
+const chatWindow = document.getElementById('chatWindow');
+const toggleChatBtn = document.getElementById('toggleChatBtn');
+const closeChatBtn = document.getElementById('closeChatBtn');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendChatBtn = document.getElementById('sendChatBtn');
+
+// Load chat messages from browser memory or start empty
+let messages = JSON.parse(localStorage.getItem('crm_messages')) || [
+    { sender: "Agent Alice", text: "Hey! Did anyone follow up with Priya Patel yet?", time: "10:30 AM" }
+];
+
+// Open and Close Chat Windows
+toggleChatBtn.addEventListener('click', () => {
+    chatWindow.classList.toggle('hidden');
+    renderMessages();
+});
+closeChatBtn.addEventListener('click', () => chatWindow.classList.add('hidden'));
+
+// Render Messages on Screen
+function renderMessages() {
+    chatMessages.innerHTML = '';
+    messages.forEach(msg => {
+        const isMe = msg.sender === roleSelector.value;
+        const msgHtml = `
+            <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                <span class="text-[10px] text-gray-500 mb-0.5">${msg.sender}</span>
+                <div class="p-2.5 rounded-2xl max-w-[85%] ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-200 text-gray-800 rounded-tl-none'}">
+                    ${msg.text}
+                </div>
+            </div>
+        `;
+        chatMessages.insertAdjacentHTML('beforeend', msgHtml);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Auto scroll to bottom
+}
+
+// Sending a message
+function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    const newMessage = {
+        sender: roleSelector.value, // Uses your active selected Admin/Agent role!
+        text: text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    messages.push(newMessage);
+    localStorage.setItem('crm_messages', JSON.stringify(messages));
+    chatInput.value = '';
+    renderMessages();
+}
+
+// Send buttons listeners
+sendChatBtn.addEventListener('click', sendMessage);
+chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+roleSelector.addEventListener('change', () => { if (!chatWindow.classList.contains('hidden')) renderMessages(); });
