@@ -8,9 +8,9 @@
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
-    <!-- 🔐 SECURE LOGIN MODAL GATE (Blocks the whole page until logged in) -->
-    <div id="loginGate" class="fixed inset-0 bg-gray-900/80 backdrop-blur-md z-999 flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl border border-gray-100 text-center">
+ <!-- 🔐 SECURE LOGIN MODAL GATE (Blocks the whole page until logged in) -->
+    <div id="loginGate" class="fixed inset-0 bg-gray-900 bg-opacity-80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl border border-gray-100 text-center relative z-50">
             <div class="bg-blue-100 text-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 font-bold">🛡️</div>
             <h2 class="text-2xl font-bold text-gray-900 mb-1">CRM Portal Login</h2>
             <p class="text-xs text-gray-500 mb-6">Enter your credentials to access the workspace</p>
@@ -29,6 +29,14 @@
                     <input id="loginPassword" type="password" placeholder="••••••••" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-blue-500">
                     <p class="text-[11px] text-gray-400 mt-1">Hint: admin123 for Admin, agent123 for Agents</p>
                 </div>
+                
+                <!-- Fixed Button Classes -->
+                <button id="submitLoginBtn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition shadow-md mt-2 cursor-pointer relative z-50 block">Verify & Enter</button>
+                
+                <p id="loginError" class="text-xs text-red-500 text-center hidden font-medium mt-2">❌ Invalid Password!</p>
+            </div>
+        </div>
+    </div>
                 <button id="submitLoginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition shadow-md mt-2 cursor-pointer">Verify & Enter</button>
                 <p id="loginError" class="text-xs text-red-500 text-center hidden font-medium mt-2">❌ Invalid Password!</p>
             </div>
