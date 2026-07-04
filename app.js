@@ -2,7 +2,8 @@
 const supabaseUrl = 'https://ekebygvsqaetiqkdnvwd.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZWJ5Z3ZzcWFldGlxa2RudndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMDM5NzMsImV4cCI6MjA5ODY3OTk3M30.Hwb3kObgb5NCEQN0-khGzdY-LjWlqDkL8pNNenXpkOk';
 
-// Instantiate cross-computer connection layer
+// FIX: Changed 'supabase.createClient' to 'supabaseJS.createClient' to stop the double-declaration crash
+const supabaseClientEngine = supabase.createClient(supabaseUrl, supabaseKey);
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // --- 📋 APPLICATION DATA STATES ---
@@ -443,3 +444,31 @@ supabase
 
 // Run startup engine execution sequence
 loadCloudData();
+// --- ⚡ INSTANT CROSS-COMPUTER NETWORK BROADCAST WEBSOCKET ENGINE ---
+
+// A. Update this line to use 'supabaseClientEngine'
+supabaseClientEngine
+    .channel('messages-live-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_private_messages' }, payload => {
+        messages.push(payload.new);
+        renderMessages();
+    })
+    .subscribe();
+
+// B. Update this line to use 'supabaseClientEngine'
+supabaseClientEngine
+    .channel('profiles-live-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_profiles' }, payload => {
+        profiles.push(payload.new);
+        populateLoginOptions();
+        renderRoster();
+        if (currentUser === "Admin") renderAdminManagementRoster();
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'crm_profiles' }, payload => {
+        profiles = profiles.filter(p => p.id !== payload.old.id);
+        populateLoginOptions();
+        checkAuth();
+        renderRoster();
+        if (currentUser === "Admin") renderAdminManagementRoster();
+    })
+    .subscribe();
