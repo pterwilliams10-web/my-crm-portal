@@ -18,12 +18,11 @@
             <p class="text-xs text-gray-500 mb-6">Select your account profile and enter your access password.</p>
             
             <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Select Identity</label>
-                    <select id="loginRole" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-lg p-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <!-- Loaded dynamically from database -->
-                    </select>
-                </div>
+                <!-- WITH THIS MANUAL TYPING BLOCK -->
+<div>
+    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Username / Name</label>
+    <input type="text" id="loginRole" placeholder="e.g., Admin, Agent Alice" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-lg p-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+</div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Security Password</label>
                     <input type="password" id="loginPassword" placeholder="••••••••" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">

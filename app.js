@@ -70,19 +70,8 @@ async function loadCloudData() {
     checkAuth();
 }
 
-function populateLoginOptions() {
-    if (!loginRole) return;
-    const currentSelection = loginRole.value;
-    loginRole.innerHTML = '';
-    
-    profiles.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.name;
-        option.textContent = p.name === "Admin" ? "System Administrator (Peter)" : p.name;
-        loginRole.appendChild(option);
-    });
-    if (currentSelection) loginRole.value = currentSelection;
-}
+// UPDATE THIS SPECIFIC LINE INSIDE submitLoginBtn.onclick:
+const selectedRole = loginRole ? loginRole.value.trim() : "";
 
 function checkAuth() {
     if (currentUser && profiles.some(p => p.name === currentUser)) {
