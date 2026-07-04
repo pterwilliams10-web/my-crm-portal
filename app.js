@@ -415,37 +415,6 @@ if (chatInput) {
 
 // --- ⚡ INSTANT CROSS-COMPUTER NETWORK BROADCAST WEBSOCKET ENGINE ---
 
-// Listen for incoming message insertions globally
-supabase
-    .channel('messages-live-channel')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_private_messages' }, payload => {
-        messages.push(payload.new);
-        renderMessages();
-    })
-    .subscribe();
-
-// Listen for profile adjustments across the office roster
-supabase
-    .channel('profiles-live-channel')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_profiles' }, payload => {
-        profiles.push(payload.new);
-        populateLoginOptions();
-        renderRoster();
-        if (currentUser === "Admin") renderAdminManagementRoster();
-    })
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'crm_profiles' }, payload => {
-        profiles = profiles.filter(p => p.id !== payload.old.id);
-        populateLoginOptions();
-        checkAuth();
-        renderRoster();
-        if (currentUser === "Admin") renderAdminManagementRoster();
-    })
-    .subscribe();
-
-// Run startup engine execution sequence
-loadCloudData();
-// --- ⚡ INSTANT CROSS-COMPUTER NETWORK BROADCAST WEBSOCKET ENGINE ---
-
 // A. Update this line to use 'supabaseClientEngine'
 supabaseClientEngine
     .channel('messages-live-channel')
