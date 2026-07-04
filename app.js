@@ -1,24 +1,18 @@
-const defaultRecords = [
-    { id: 1, name: "Tom Brown", agent: "Agent Alice", status: "Cancelled" },
-    { id: 2, name: "Priya Patel", agent: "Agent Bob", status: "Hold" },
-    { id: 3, name: "Mike Lee", agent: "Agent Alice", status: "Pending" }
-];
+// --- ⚙️ LIVE SUPABASE PRODUCTION CREDENTIALS ---
+const supabaseUrl = 'https://ekebygvsqaetiqkdnvwd.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVrZWJ5Z3ZzcWFldGlxa2RudndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMDM5NzMsImV4cCI6MjA5ODY3OTk3M30.Hwb3kObgb5NCEQN0-khGzdY-LjWlqDkL8pNNenXpkOk';
 
-// Seed the initial structural accounts if empty
-const initialAccounts = [
-    { name: "Admin", pass: "admin123" },
-    { name: "Agent Alice", pass: "agent123" },
-    { name: "Agent Bob", pass: "agent123" }
-];
+// Instantiate cross-computer connection layer
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-if (!localStorage.getItem('crm_profiles')) {
-    localStorage.setItem('crm_profiles', JSON.stringify(initialAccounts));
-}
-
-let records = JSON.parse(localStorage.getItem('crm_records')) || defaultRecords;
+// --- 📋 APPLICATION DATA STATES ---
+let records = [];
+let profiles = [];
+let messages = [];
 let currentUser = sessionStorage.getItem('crm_user') || null;
+let activeChatTarget = null;
 
-// Layout Selectors
+// --- 🌐 ELEMENT IDENTIFIERS INTERACTION SELECTIONS ---
 const loginGate = document.getElementById('loginGate');
 const loginRole = document.getElementById('loginRole');
 const loginPassword = document.getElementById('loginPassword');
@@ -31,14 +25,14 @@ const totalCount = document.getElementById('totalCount');
 const searchInput = document.getElementById('searchInput');
 const addRecordBtn = document.getElementById('addRecordBtn');
 
-// Team Management Selectors
+// Team Selectors
 const adminManagementPanel = document.getElementById('adminManagementPanel');
 const newAgentName = document.getElementById('newAgentName');
 const newAgentPassword = document.getElementById('newAgentPassword');
 const saveAgentBtn = document.getElementById('saveAgentBtn');
 const adminRosterManagementContainer = document.getElementById('adminRosterManagementContainer');
 
-// Private DM System Selectors
+// Chat Selectors
 const chatWindow = document.getElementById('chatWindow');
 const toggleChatBtn = document.getElementById('toggleChatBtn');
 const closeChatBtn = document.getElementById('closeChatBtn');
@@ -54,34 +48,46 @@ const chatInputArea = document.getElementById('chatInputArea');
 const adminViewControls = document.getElementById('adminViewControls');
 const adminViewIntermediary = document.getElementById('adminViewIntermediary');
 
-let messages = JSON.parse(localStorage.getItem('crm_private_messages')) || [];
+// --- 🛠️ SYNCHRONIZED APP LOGIC CONTROLLERS ---
 
-function getProfiles() {
-    return JSON.parse(localStorage.getItem('crm_profiles')) || initialAccounts;
+// Pull data immediately upon boot up from live cloud tables
+async function loadCloudData() {
+    let { data: fetchedProfiles } = await supabase.from('crm_profiles').select('*');
+    profiles = fetchedProfiles || [];
+
+    let { data: fetchedMessages } = await supabase.from('crm_private_messages').select('*').order('timestamp', { ascending: true });
+    messages = fetchedMessages || [];
+
+    // LocalStorage tracking for Deal Pipeline Table rows
+    records = JSON.parse(localStorage.getItem('crm_records')) || [
+        { id: 1, name: "Tom Brown", agent: "Agent Alice", status: "Cancelled" },
+        { id: 2, name: "Priya Patel", agent: "Agent Bob", status: "Hold" },
+        { id: 3, name: "Mike Lee", agent: "Agent Alice", status: "Pending" }
+    ];
+
+    populateLoginOptions();
+    checkAuth();
 }
 
-// Renders the selector drop-down container elements on the login page dynamically
 function populateLoginOptions() {
     if (!loginRole) return;
+    const currentSelection = loginRole.value;
     loginRole.innerHTML = '';
-    const profiles = getProfiles();
+    
     profiles.forEach(p => {
         const option = document.createElement('option');
         option.value = p.name;
         option.textContent = p.name === "Admin" ? "System Administrator (Peter)" : p.name;
         loginRole.appendChild(option);
     });
+    if (currentSelection) loginRole.value = currentSelection;
 }
 
 function checkAuth() {
-    populateLoginOptions();
-    const profiles = getProfiles();
-    
     if (currentUser && profiles.some(p => p.name === currentUser)) {
         if (loginGate) loginGate.style.display = 'none';
         if (userBadge) userBadge.textContent = currentUser;
         
-        // Show/Hide Administrative Panel base clearances
         if (currentUser === "Admin") {
             if (adminManagementPanel) adminManagementPanel.classList.remove('hidden');
             renderAdminManagementRoster();
@@ -104,8 +110,6 @@ if (submitLoginBtn) {
     submitLoginBtn.onclick = function() {
         const selectedRole = loginRole ? loginRole.value : "";
         const enteredPassword = loginPassword ? loginPassword.value : "";
-        const profiles = getProfiles();
-
         const targetedUser = profiles.find(p => p.name === selectedRole);
 
         if (targetedUser && targetedUser.pass === enteredPassword) {
@@ -131,48 +135,42 @@ if (logoutBtn) {
     };
 }
 
-// --- ⚙️ ADMIN PROFILE WRITING & WIPING SYSTEM ENGINES ---
 if (saveAgentBtn) {
-    saveAgentBtn.onclick = function() {
+    saveAgentBtn.onclick = async function() {
         const nameClean = newAgentName.value.trim();
         const passClean = newAgentPassword.value.trim();
 
         if (!nameClean || !passClean) {
-            alert("Error: All profile entry cells require parameters.");
+            alert("Error: All fields are required.");
             return;
         }
 
-        let currentProfiles = getProfiles();
-
-        if (currentProfiles.some(p => p.name.toLowerCase() === nameClean.toLowerCase())) {
-            alert("Error: Profile identifier matches existing credentials.");
+        if (profiles.some(p => p.name.toLowerCase() === nameClean.toLowerCase())) {
+            alert("Error: Profile already exists.");
             return;
         }
 
-        currentProfiles.push({ name: nameClean, pass: passClean });
-        localStorage.setItem('crm_profiles', JSON.stringify(currentProfiles));
+        const { error } = await supabase.from('crm_profiles').insert([{ name: nameClean, pass: passClean }]);
 
-        newAgentName.value = '';
-        newAgentPassword.value = '';
-        
-        renderAdminManagementRoster();
-        populateLoginOptions();
-        renderRoster();
-        alert(`Account created successfully for ${nameClean}!`);
+        if (error) {
+            alert("Database error: " + error.message);
+        } else {
+            newAgentName.value = '';
+            newAgentPassword.value = '';
+            alert(`Account created successfully for ${nameClean}!`);
+        }
     };
 }
 
 function renderAdminManagementRoster() {
     if (!adminRosterManagementContainer) return;
     adminRosterManagementContainer.innerHTML = '';
-    const profiles = getProfiles();
 
     profiles.forEach(p => {
-        // Safe lock checking configuration block—preventing admin automated removal hooks
         const isSelf = p.name === "Admin";
         const deleteButtonHtml = isSelf 
             ? `<span class="text-[10px] text-gray-400 font-bold italic bg-gray-100 px-2 py-1 rounded-lg">System Lock</span>`
-            : `<button onclick="deleteAgentProfile('${p.name}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-[11px] px-2 py-1 rounded-lg transition">Remove</button>`;
+            : `<button onclick="deleteAgentProfile('${p.id}', '${p.name}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-[11px] px-2 py-1 rounded-lg transition">Remove</button>`;
 
         const userItemHtml = `
             <div class="flex justify-between items-center bg-white border border-gray-200 p-2.5 rounded-lg shadow-xs">
@@ -187,27 +185,19 @@ function renderAdminManagementRoster() {
     });
 }
 
-window.deleteAgentProfile = function(profileName) {
+window.deleteAgentProfile = async function(id, profileName) {
     if (profileName === "Admin") return;
-    if (!confirm(`Are you sure you want to permanently remove ${profileName} from the organization?`)) return;
+    if (!confirm(`Are you sure you want to permanently remove ${profileName}?`)) return;
 
-    let currentProfiles = getProfiles();
-    currentProfiles = currentProfiles.filter(p => p.name !== profileName);
-    localStorage.setItem('crm_profiles', JSON.stringify(currentProfiles));
+    await supabase.from('crm_profiles').delete().eq('id', id);
 
-    // Reset targeted chats if currently observing deleted user channel lines
     if (activeChatTarget === profileName) {
         activeChatTarget = null;
         if (chatTargetHeader) chatTargetHeader.textContent = "Select a colleague";
         if (chatInputArea) chatInputArea.classList.add('hidden');
     }
-
-    renderAdminManagementRoster();
-    populateLoginOptions();
-    renderRoster();
 };
 
-// --- CRM Tables Render Core Engine ---
 function renderTable() {
     if (!tableBody) return;
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
@@ -258,8 +248,6 @@ function renderRoster() {
     if (!userRosterList) return;
     const searchFilter = userSearchInput ? userSearchInput.value.toLowerCase() : "";
     userRosterList.innerHTML = '';
-    
-    const profiles = getProfiles();
 
     profiles.forEach(p => {
         if (p.name === currentUser) return;
@@ -279,8 +267,6 @@ window.selectChatTarget = function(targetUser) {
     activeChatTarget = targetUser;
     renderRoster();
     if (chatInputArea) chatInputArea.classList.remove('hidden');
-    
-    const profiles = getProfiles();
 
     if (currentUser === "Admin") {
         if (adminViewControls) adminViewControls.classList.remove('hidden');
@@ -331,11 +317,11 @@ function renderMessages() {
         const displayTime = formatTimestamp(msg.timestamp);
 
         let displayContent = '';
-        if (msg.isFile) {
+        if (msg.is_file) {
             displayContent = `
                 <div class="mt-1 border-t border-white/20 pt-1.5 flex flex-col gap-1 text-[11px]">
-                    <span class="font-bold">📄 File: ${msg.fileName}</span>
-                    <a href="${msg.fileData}" download="${msg.fileName}" class="inline-block text-center bg-white text-blue-700 px-2 py-0.5 rounded font-bold mt-1 shadow-sm">Download</a>
+                    <span class="font-bold">📄 File: ${msg.file_name}</span>
+                    <a href="${msg.file_data}" download="${msg.file_name}" class="inline-block text-center bg-white text-blue-700 px-2 py-0.5 rounded font-bold mt-1 shadow-sm">Download</a>
                 </div>`;
         } else {
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
@@ -358,22 +344,21 @@ function renderMessages() {
 }
 
 if (sendChatBtn) {
-    sendChatBtn.onclick = function() {
+    sendChatBtn.onclick = async function() {
         if (!chatInput) return;
         const text = chatInput.value.trim();
         if (!text || !activeChatTarget) return;
 
-        messages.push({
+        const outgoingPayload = {
             sender: currentUser,
             recipient: activeChatTarget,
             text: text,
-            isFile: false,
+            is_file: false,
             timestamp: new Date().toISOString()
-        });
+        };
 
-        localStorage.setItem('crm_private_messages', JSON.stringify(messages));
         chatInput.value = '';
-        renderMessages();
+        await supabase.from('crm_private_messages').insert([outgoingPayload]);
     };
 }
 
@@ -391,18 +376,17 @@ if (chatFileInput) {
         }
 
         const reader = new FileReader();
-        reader.onload = function(event) {
-            messages.push({
+        reader.onload = async function(event) {
+            const filePayload = {
                 sender: currentUser,
                 recipient: activeChatTarget,
-                isFile: true,
-                fileName: file.name,
-                fileData: event.target.result,
+                is_file: true,
+                file_name: file.name,
+                file_data: event.target.result,
                 timestamp: new Date().toISOString()
-            });
-            localStorage.setItem('crm_private_messages', JSON.stringify(messages));
+            };
             chatFileInput.value = '';
-            renderMessages();
+            await supabase.from('crm_private_messages').insert([filePayload]);
         };
         reader.readAsDataURL(file);
     };
@@ -428,15 +412,34 @@ if (chatInput) {
     };
 }
 
-// Polling interval sync checks
-setInterval(function() {
-    if (chatWindow && chatWindow.style.display === 'flex' && activeChatTarget) {
-        const localStoreMessages = JSON.parse(localStorage.getItem('crm_private_messages')) || [];
-        if (localStoreMessages.length !== messages.length) {
-            messages = localStoreMessages;
-            renderMessages();
-        }
-    }
-}, 1000);
+// --- ⚡ INSTANT CROSS-COMPUTER NETWORK BROADCAST WEBSOCKET ENGINE ---
 
-checkAuth();
+// Listen for incoming message insertions globally
+supabase
+    .channel('messages-live-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_private_messages' }, payload => {
+        messages.push(payload.new);
+        renderMessages();
+    })
+    .subscribe();
+
+// Listen for profile adjustments across the office roster
+supabase
+    .channel('profiles-live-channel')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crm_profiles' }, payload => {
+        profiles.push(payload.new);
+        populateLoginOptions();
+        renderRoster();
+        if (currentUser === "Admin") renderAdminManagementRoster();
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'crm_profiles' }, payload => {
+        profiles = profiles.filter(p => p.id !== payload.old.id);
+        populateLoginOptions();
+        checkAuth();
+        renderRoster();
+        if (currentUser === "Admin") renderAdminManagementRoster();
+    })
+    .subscribe();
+
+// Run startup engine execution sequence
+loadCloudData();

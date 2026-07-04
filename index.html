@@ -3,116 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Portal - Secure DMs</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>Office Real-Time CRM</title>
+    <!-- Tailwind CSS for UI Layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase Client Library - Essential for Multi-Computer Live Sync -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans">
+<body class="bg-gray-100 font-sans antialiased">
 
-    <!-- 🔐 LOGIN MODAL LAYER -->
-    <div id="loginGate" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4" style="z-index: 9999;">
-        <div class="bg-white p-8 rounded-2xl max-w-sm w-full shadow-2xl text-center">
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">CRM Portal Login</h2>
-            <p class="text-xs text-gray-500 mb-6">Select your profile and enter password</p>
+    <!-- 1. Authentication Login Gate -->
+    <div id="loginGate" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <h2 class="text-2xl font-black text-gray-800 mb-2 tracking-tight">Office CRM Login</h2>
+            <p class="text-xs text-gray-500 mb-6">Select your account profile and enter your access password.</p>
             
-            <div class="space-y-4 text-left">
+            <div class="space-y-4">
                 <div>
-                    <label class="text-xs font-bold text-gray-600 block mb-1">User Profile</label>
-                    <select id="loginRole" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-blue-500 font-medium">
-                        <option value="Admin">System Administrator (Peter)</option>
-                        <option value="Agent Alice">Agent Alice</option>
-                        <option value="Agent Bob">Agent Bob</option>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Select Identity</label>
+                    <select id="loginRole" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-lg p-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <!-- Loaded dynamically from database -->
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-gray-600 block mb-1">Password</label>
-                    <input id="loginPassword" type="password" placeholder="••••••••" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-blue-500">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Security Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" class="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                
-                <button id="submitLoginBtn" type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition mt-2">Verify & Enter</button>
-                <p id="loginError" class="text-xs text-red-500 text-center hidden font-medium mt-2">❌ Invalid Password!</p>
+                <div id="loginError" class="text-red-600 text-xs font-semibold hidden bg-red-50 p-2.5 rounded-lg border border-red-100">
+                    ⚠️ Verification Failed: Incorrect password.
+                </div>
+                <button id="submitLoginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-lg text-sm transition shadow-md">Authenticate Portal</button>
             </div>
         </div>
     </div>
 
-    <!-- 🖥️ MAIN APPLICATION INTERFACE -->
-    <header class="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-        <h1 class="text-xl font-bold text-gray-900">🛡️ CRM Portal</h1>
-        <div class="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl">
-            <span id="userBadge" class="text-sm font-bold text-gray-700">Not Logged In</span>
-            <button id="logoutBtn" class="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded ml-2 text-gray-600">Logout</button>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-                <h3 class="text-2xl font-bold" id="totalCount">0</h3>
-                <p class="text-xs text-gray-500">Active Records View</p>
+    <!-- Main Navigation Bar -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-xl font-black text-gray-900 tracking-tight">LAN<span class="text-blue-600">CRM</span></span>
+                <span class="bg-emerald-100 text-emerald-800 font-bold text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">Cloud Connected</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="userBadge" class="text-xs font-bold text-gray-700">Loading...</span>
+                </div>
+                <button id="logoutBtn" class="text-xs font-bold text-gray-500 hover:text-red-600 transition">Sign Out</button>
             </div>
         </div>
+    </nav>
 
-        <div class="flex justify-between items-center gap-4 mb-6">
-            <input id="searchInput" type="text" placeholder="Search records..." class="w-80 px-4 py-2 border border-gray-300 rounded-xl bg-white">
-            <button id="addRecordBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-xl">+ Add Record</button>
-        </div>
+    <!-- Main Content Layout Area -->
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
 
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase">
-                        <th class="p-4">Customer Name</th>
-                        <th class="p-4">Assigned Agent</th>
-                        <th class="p-4">Status</th>
-                        <th class="p-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody" class="divide-y divide-gray-200 text-sm"></tbody>
-            </table>
-        </div>
+        <!-- Admin Management Panel Section -->
+        <section id="adminManagementPanel" class="bg-white border border-gray-200 rounded-xl shadow-xs p-6 hidden">
+            <h3 class="text-sm font-black text-gray-900 uppercase tracking-wider mb-1">System Administration (Peter)</h3>
+            <p class="text-xs text-gray-400 mb-4">Manage your office work team roster below.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Profile Creation Form -->
+                <div class="bg-gray-50 border border-gray-100 p-4 rounded-xl space-y-3">
+                    <h4 class="text-xs font-bold text-gray-700 uppercase">Create New Agent Profile</h4>
+                    <input type="text" id="newAgentName" placeholder="Agent Full Name" class="w-full bg-white border border-gray-200 p-2 rounded-lg text-xs focus:outline-none">
+                    <input type="password" id="newAgentPassword" placeholder="Assign Login Password" class="w-full bg-white border border-gray-200 p-2 rounded-lg text-xs focus:outline-none">
+                    <button id="saveAgentBtn" class="w-full bg-gray-900 hover:bg-black text-white text-xs font-bold py-2 rounded-lg transition">Save to System</button>
+                </div>
+                <!-- Dynamic Database Roster Display Container -->
+                <div class="md:col-span-2 space-y-2">
+                    <h4 class="text-xs font-bold text-gray-700 uppercase">Current Account Authorizations</h4>
+                    <div id="adminRosterManagementContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
+                        <!-- Injected via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CRM Customer Records Board Table -->
+        <section class="bg-white border border-gray-200 rounded-xl shadow-xs overflow-hidden">
+            <div class="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h3 class="text-base font-black text-gray-900">CRM Deal Pipeline</h3>
+                    <p class="text-xs text-gray-400">Viewing <span id="totalCount" class="font-bold text-gray-700">0</span> accounts assigned to you.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="searchInput" placeholder="Search customer records..." class="bg-gray-50 border border-gray-200 rounded-lg text-xs px-3 py-2 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="addRecordBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm transition whitespace-nowrap">+ Add Record</button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                            <th class="p-4">Customer Name</th>
+                            <th class="p-4">Assigned Representative</th>
+                            <th class="p-4">Deal Status</th>
+                            <th class="p-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-gray-100 text-sm">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </main>
 
-    <!-- 💬 SPLIT DIRECT MESSAGE CHAT WORKSPACE -->
-    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end" style="position: fixed; bottom: 24px; right: 24px; z-index: 5000;">
-        <div id="chatWindow" class="hidden bg-white rounded-2xl shadow-2xl border border-gray-300 flex overflow-hidden mb-4" style="display: none; width: 620px; height: 480px;">
-            
-            <!-- Left Panel: Employee Roster & Search -->
-            <div class="w-1/3 border-r border-gray-200 bg-gray-50 flex flex-col">
-                <div class="p-3 border-b border-gray-200 bg-white">
-                    <input id="userSearchInput" type="text" placeholder="Search team..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-blue-500">
+    <!-- 💬 Real-Time Inter-Office Messaging Engine UI Widget Component -->
+    <button id="toggleChatBtn" class="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-full p-4 shadow-xl transition-all hover:scale-105 z-50 flex items-center gap-2">
+        💬 <span class="text-sm tracking-tight pr-1">Office Chat</span>
+    </button>
+
+    <div id="chatWindow" class="fixed bottom-24 right-6 bg-white w-[92vw] sm:w-[450px] h-[550px] rounded-2xl shadow-2xl border border-gray-200 flex-col z-50 hidden overflow-hidden">
+        <!-- Top Title Bar Operations Header -->
+        <div class="bg-gray-900 p-4 text-white flex justify-between items-center shrink-0">
+            <div>
+                <h4 class="text-xs font-black uppercase tracking-wider text-blue-400">Secure Internal Messaging</h4>
+                <div id="chatTargetHeader" class="text-sm font-bold tracking-tight text-white mt-0.5">Select a colleague</div>
+            </div>
+            <button id="closeChatBtn" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+        </div>
+
+        <!-- Master Split Internal Communication Operations Column Panel Grid Layout Structure -->
+        <div class="flex flex-1 min-h-0">
+            <!-- Sidebar Team Navigator Profiles Roster List Column -->
+            <div class="w-1/3 border-r border-gray-100 bg-gray-50 flex flex-col min-h-0">
+                <div class="p-2 border-b border-gray-100">
+                    <input type="text" id="userSearchInput" placeholder="Filter..." class="w-full bg-white border border-gray-200 rounded p-1 text-[11px] focus:outline-none">
                 </div>
-                <div id="userRosterList" class="flex-1 overflow-y-auto divide-y divide-gray-100 text-xs"></div>
+                <div id="userRosterList" class="flex-1 overflow-y-auto text-xs divide-y divide-gray-100">
+                    <!-- Injected dynamically via database matching engine arrays -->
+                </div>
             </div>
 
-            <!-- Right Panel: Active Chat Feed Area -->
-            <div class="w-2/3 flex flex-col bg-white">
-                <div class="bg-blue-600 text-white p-3 flex justify-between items-center">
-                    <div>
-                        <h4 id="chatTargetHeader" class="font-bold text-xs">Select a colleague</h4>
-                        <div id="adminViewControls" class="hidden mt-1 flex items-center gap-1">
-                            <span class="bg-red-500 text-white text-[9px] px-1 rounded font-bold animate-pulse">ADMIN MODE</span>
-                            <select id="adminViewIntermediary" class="bg-blue-700 text-white border-none text-[10px] rounded focus:outline-none p-0.5"></select>
-                        </div>
-                    </div>
-                    <button id="closeChatBtn" class="text-white text-sm font-bold pl-2">✕</button>
+            <!-- Thread Screen Dynamic Interface Workspace Display Block -->
+            <div class="w-2/3 flex flex-col min-h-0 bg-white">
+                <!-- System Admin Wiretap Intermediary Controller Dropdown Interceptor Wire View Frame -->
+                <div id="adminViewControls" class="p-2 bg-amber-50 border-b border-amber-100 text-[10px] text-amber-900 hidden flex-col gap-1 shrink-0">
+                    <span class="font-bold uppercase tracking-wider">🕵️ System Security Intercept Mode</span>
+                    <select id="adminViewIntermediary" class="w-full bg-white border border-amber-200 rounded p-1 font-semibold text-[10px]">
+                        <!-- Populated by JavaScript -->
+                    </select>
                 </div>
-                
-                <div id="chatMessages" class="flex-1 p-4 overflow-y-auto bg-gray-50 text-xs space-y-3" style="overflow-y: auto;"></div>
-                
-                <div id="chatInputArea" class="p-2 border-t border-gray-200 bg-white hidden flex flex-col gap-1.5">
-                    <div class="flex gap-2 items-center">
-                        <input id="chatFileInput" type="file" class="hidden" style="display: none;">
-                        <button id="fileAttachBtn" type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-xl text-sm font-bold" title="Upload up to 10MB">📎</button>
-                        
-                        <input id="chatInput" type="text" placeholder="Write a response..." class="flex-1 px-3 py-1.5 border border-gray-300 rounded-xl text-xs focus:outline-blue-500">
-                        <button id="sendChatBtn" class="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-blue-700">Send</button>
+
+                <!-- Chat Feed Wrapper Scroll Layout Area -->
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-3 flex flex-col min-h-0">
+                    <div class="text-gray-400 text-xs italic text-center my-auto">Select a team member from the side list roster panel to pull secure transcripts.</div>
+                </div>
+
+                <!-- Input Sending Tool Row Controller Section -->
+                <div id="chatInputArea" class="p-2 border-t border-gray-100 bg-gray-50 hidden space-y-2 shrink-0">
+                    <div class="flex items-center gap-1.5">
+                        <input type="text" id="chatInput" placeholder="Type private message..." class="flex-1 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <button id="sendChatBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition shadow-xs">Send</button>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] text-gray-400 px-1">
+                        <button id="fileAttachBtn" class="hover:text-blue-600 font-bold flex items-center gap-1">📎 Attach File (Max 10MB)</button>
+                        <input type="file" id="chatFileInput" class="hidden">
                     </div>
                 </div>
             </div>
-            
         </div>
-        <button id="toggleChatBtn" class="bg-blue-600 text-white p-4 rounded-full shadow-lg text-2xl" style="border-radius: 9999px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; cursor: pointer;">💬</button>
     </div>
 
+    <!-- Active Link Processing File Engine -->
     <script src="app.js"></script>
 </body>
 </html>
