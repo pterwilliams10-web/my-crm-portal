@@ -27,9 +27,11 @@ const closeChatBtn = document.getElementById('closeChatBtn');
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const sendChatBtn = document.getElementById('sendChatBtn');
+const chatFileInput = document.getElementById('chatFileInput');
+const fileAttachBtn = document.getElementById('fileAttachBtn');
 
 let messages = JSON.parse(localStorage.getItem('crm_messages')) || [
-    { sender: "Agent Alice", text: "Welcome to the portal!" }
+    { sender: "System", text: "Welcome to the corporate portal! Feel free to share links or drop files up to 10MB.", isFile: false }
 ];
 
 function checkAuth() {
@@ -116,7 +118,14 @@ window.deleteRecord = function(id) {
     renderTable();
 };
 
-// --- CHAT LOGIC MODES ---
+// --- 🌐 LINK DETECTOR HELPER ENGINE ---
+function formatTextMessage(text) {
+    // Regex that automatically finds URLs beginning with http:// or https://
+    const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+    return text.replace(urlPattern, '<a href="$1" target="_blank" class="underline text-yellow-200 font-bold hover:text-white">$1 🔗</a>');
+}
+
+// --- 💬 CHAT LOGIC MODES WITH FILE TRANSFERS ---
 toggleChatBtn.onclick = function() {
     if (chatWindow.style.display === 'none' || chatWindow.style.display === '') {
         chatWindow.style.display = 'flex';
@@ -134,11 +143,24 @@ function renderMessages() {
     chatMessages.innerHTML = '';
     messages.forEach(msg => {
         const isMe = msg.sender === currentUser;
+        
+        let displayContent = '';
+        if (msg.isFile) {
+            // Renders a stylized download module container for shared team files
+            displayContent = `
+                <div class="mt-1 border-t border-white/20 pt-1.5 flex flex-col gap-1 text-[11px]">
+                    <span class="font-bold">📄 Shared File: ${msg.fileName}</span>
+                    <a href="${msg.fileData}" download="${msg.fileName}" class="inline-block text-center bg-white text-blue-700 px-2 py-1 rounded font-bold mt-1 shadow-sm hover:bg-gray-100">⬇️ Download File</a>
+                </div>`;
+        } else {
+            displayContent = formatTextMessage(msg.text);
+        }
+
         const msgHtml = `
             <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-                <span class="text-[9px] text-gray-500">${msg.sender}</span>
-                <div class="p-2 rounded text-white ${isMe ? 'bg-blue-600' : 'bg-gray-400'} max-w-[80%]">
-                    ${msg.text}
+                <span class="text-[9px] text-gray-500 font-semibold">${msg.sender}</span>
+                <div class="p-2.5 rounded-xl text-white ${isMe ? 'bg-blue-600' : 'bg-gray-600'} max-w-[85%] break-words">
+                    ${displayContent}
                 </div>
             </div>
         `;
@@ -147,16 +169,52 @@ function renderMessages() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// Sending plain text messages
 sendChatBtn.onclick = function() {
     const text = chatInput.value.trim();
     if (!text) return;
 
-    messages.push({ sender: currentUser, text: text });
+    messages.push({ sender: currentUser, text: text, isFile: false });
     localStorage.setItem('crm_messages', JSON.stringify(messages));
     chatInput.value = '';
     renderMessages();
 };
 
+// 📎 Clicking the clip icon fires open the system file chooser window
+fileAttachBtn.onclick = function() {
+    chatFileInput.click();
+};
+
+// File Upload Handler (Enforces 10MB Threshold limit)
+chatFileInput.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const maxSizeBytes = 10 * 1024 * 1024; // 10MB calculation metric threshold
+    if (file.size > maxSizeBytes) {
+        alert("File Rejected: System blocks operations passing 10MB size limits.");
+        chatFileInput.value = ''; // Reset slot
+        return;
+    }
+
+    // Convert file into a link using JS FileReader
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        messages.push({
+            sender: currentUser,
+            isFile: true,
+            fileName: file.name,
+            fileData: event.target.result // Base64 data link stream
+        });
+        
+        localStorage.setItem('crm_messages', JSON.stringify(messages));
+        chatFileInput.value = ''; // Reset
+        renderMessages();
+    };
+    reader.readAsDataURL(file);
+};
+
 if (searchInput) searchInput.oninput = renderTable;
+chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatBtn.onclick(); });
 
 checkAuth();

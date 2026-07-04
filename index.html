@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRM Portal</title>
-    <!-- Simple, reliable Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
@@ -73,25 +72,34 @@
         </div>
     </main>
 
-    <!-- 💬 FLOATING CHAT WIDGET -->
+    <!-- 💬 UPGRADED FLOATING CHAT WIDGET -->
     <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end" style="position: fixed; bottom: 24px; right: 24px; z-index: 5000;">
-        <div id="chatWindow" class="hidden bg-white rounded-2xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden mb-4" style="display: none; width: 320px; height: 384px;">
+        <div id="chatWindow" class="hidden bg-white rounded-2xl shadow-2xl border border-gray-300 flex flex-col overflow-hidden mb-4" style="display: none; width: 360px; height: 460px;">
             <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
                 <div>
-                    <h4 class="font-bold text-sm">Internal CRM Chat</h4>
+                    <h4 class="font-bold text-sm">Office Internal Team Feed</h4>
+                    <p class="text-[10px] text-blue-100">Supports text links & file transfers up to 10MB</p>
                 </div>
                 <button id="closeChatBtn" class="text-white text-sm font-bold">✕</button>
             </div>
-            <div id="chatMessages" class="flex-1 p-4 overflow-y-auto bg-gray-50 text-xs space-y-2" style="height: 260px; overflow-y: auto;"></div>
-            <div class="p-2 border-t border-gray-200 bg-white flex gap-2">
-                <input id="chatInput" type="text" placeholder="Type a message..." class="flex-1 px-3 py-1 border border-gray-300 rounded-xl text-sm">
-                <button id="sendChatBtn" class="bg-blue-600 text-white px-3 py-1 rounded-xl text-sm font-bold">Send</button>
+            <!-- Chat Feed Screen -->
+            <div id="chatMessages" class="flex-1 p-4 overflow-y-auto bg-gray-50 text-xs space-y-3" style="height: 320px; overflow-y: auto;"></div>
+            
+            <!-- Chat Input & File Tray Control Bar -->
+            <div class="p-2 border-t border-gray-200 bg-white flex flex-col gap-1.5">
+                <div class="flex gap-2 items-center">
+                    <!-- 📎 Hidden File Input element triggered via button -->
+                    <input id="chatFileInput" type="file" class="hidden" style="display: none;">
+                    <button id="fileAttachBtn" type="button" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-xl text-lg font-bold" title="Upload File (Max 10MB)">📎</button>
+                    
+                    <input id="chatInput" type="text" placeholder="Type a message or paste links..." class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-blue-500">
+                    <button id="sendChatBtn" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700">Send</button>
+                </div>
             </div>
         </div>
-        <button id="toggleChatBtn" class="bg-blue-600 text-white p-4 rounded-full shadow-lg text-2xl" style="border-radius: 9999px; width: 60px; height: 60px; display: flex; items-center; justify-content: center;">💬</button>
+        <button id="toggleChatBtn" class="bg-blue-600 text-white p-4 rounded-full shadow-lg text-2xl" style="border-radius: 9999px; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; cursor: pointer;">💬</button>
     </div>
 
-    <!-- Link to script -->
     <script src="app.js"></script>
 </body>
 </html>
