@@ -36,59 +36,62 @@ const chatInputArea = document.getElementById('chatInputArea');
 const adminViewControls = document.getElementById('adminViewControls');
 const adminViewIntermediary = document.getElementById('adminViewIntermediary');
 
-// All available profiles in the company database
 const companyUsers = ["Admin", "Agent Alice", "Agent Bob"];
-let activeChatTarget = null; // The person you are chatting with
+let activeChatTarget = null; 
 
-// Unified DM Database Structure
 let messages = JSON.parse(localStorage.getItem('crm_private_messages')) || [
-    { sender: "Admin", recipient: "Agent Alice", text: "Hey Alice, check out the new portal features!", isFile: false }
+    { sender: "Admin", recipient: "Agent Alice", text: "Hey Alice, welcome to the secure DM network!", isFile: false }
 ];
 
 function checkAuth() {
     if (currentUser) {
-        loginGate.style.display = 'none';
-        userBadge.textContent = currentUser;
+        if (loginGate) loginGate.style.display = 'none';
+        if (userBadge) userBadge.textContent = currentUser;
         renderTable();
         renderRoster();
     } else {
-        loginGate.style.display = 'flex';
-        chatWindow.style.display = 'none';
+        if (loginGate) loginGate.style.display = 'flex';
+        if (chatWindow) chatWindow.style.display = 'none';
     }
 }
 
-submitLoginBtn.onclick = function() {
-    const role = loginRole.value;
-    const pass = loginPassword.value;
+if (submitLoginBtn) {
+    submitLoginBtn.onclick = function() {
+        const role = loginRole ? loginRole.value : "Admin";
+        const pass = loginPassword ? loginPassword.value : "";
 
-    if ((role === "Admin" && pass === "admin123") || (role.startsWith("Agent") && pass === "agent123")) {
-        currentUser = role;
-        sessionStorage.setItem('crm_user', role);
-        loginError.classList.add('hidden');
-        loginPassword.value = '';
-        activeChatTarget = null;
-        chatTargetHeader.textContent = "Select a colleague";
-        chatInputArea.classList.add('hidden');
+        if ((role === "Admin" && pass === "admin123") || (role.startsWith("Agent") && pass === "agent123")) {
+            currentUser = role;
+            sessionStorage.setItem('crm_user', role);
+            if (loginError) loginError.classList.add('hidden');
+            if (loginPassword) loginPassword.value = '';
+            activeChatTarget = null;
+            if (chatTargetHeader) chatTargetHeader.textContent = "Select a colleague";
+            if (chatInputArea) chatInputArea.classList.add('hidden');
+            checkAuth();
+        } else {
+            if (loginError) loginError.classList.remove('hidden');
+        }
+    };
+}
+
+if (logoutBtn) {
+    logoutBtn.onclick = function() {
+        currentUser = null;
+        sessionStorage.removeItem('crm_user');
         checkAuth();
-    } else {
-        loginError.classList.remove('hidden');
-    }
-};
-
-logoutBtn.onclick = function() {
-    currentUser = null;
-    sessionStorage.removeItem('crm_user');
-    checkAuth();
-};
+    };
+}
 
 function renderTable() {
-    const searchTerm = searchInput.value.toLowerCase();
+    if (!tableBody) return;
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
     tableBody.innerHTML = '';
     let visibleCount = 0;
 
     records.forEach(record => {
         if (currentUser !== "Admin" && record.agent !== currentUser) return;
-        if (!record.name.toLowerCase().includes(searchTerm) && !record.status.toLowerCase().includes(searchTerm)) return;
+        if (searchTerm && !record.name.toLowerCase().includes(searchTerm) && !record.status.toLowerCase().includes(searchTerm)) return;
 
         visibleCount++;
         const deleteActionHtml = currentUser === "Admin" 
@@ -105,17 +108,19 @@ function renderTable() {
         `;
         tableBody.insertAdjacentHTML('beforeend', row);
     });
-    totalCount.textContent = visibleCount;
+    if (totalCount) totalCount.textContent = visibleCount;
 }
 
-addRecordBtn.onclick = function() {
-    const newName = prompt("Enter Customer Name:");
-    if (!newName) return;
-    const newRecord = { id: Date.now(), name: newName, agent: currentUser === "Admin" ? "Agent Alice" : currentUser, status: "Pending" };
-    records.push(newRecord);
-    localStorage.setItem('crm_records', JSON.stringify(records));
-    renderTable();
-};
+if (addRecordBtn) {
+    addRecordBtn.onclick = function() {
+        const newName = prompt("Enter Customer Name:");
+        if (!newName) return;
+        const newRecord = { id: Date.now(), name: newName, agent: currentUser === "Admin" ? "Agent Alice" : currentUser, status: "Pending" };
+        records.push(newRecord);
+        localStorage.setItem('crm_records', JSON.stringify(records));
+        renderTable();
+    };
+}
 
 window.deleteRecord = function(id) {
     if (currentUser !== "Admin") return;
@@ -124,15 +129,14 @@ window.deleteRecord = function(id) {
     renderTable();
 };
 
-// --- 👥 ROSTER GENERATION & TARGET SELECTION ---
 function renderRoster() {
-    const searchFilter = userSearchInput.value.toLowerCase();
+    if (!userRosterList) return;
+    const searchFilter = userSearchInput ? userSearchInput.value.toLowerCase() : "";
     userRosterList.innerHTML = '';
 
     companyUsers.forEach(user => {
-        // Employees do not display themselves in their own sidebar roster
         if (user === currentUser) return;
-        if (!user.toLowerCase().includes(searchFilter)) return;
+        if (searchFilter && !user.toLowerCase().includes(searchFilter)) return;
 
         const isSelected = activeChatTarget === user;
         const userRow = `
@@ -147,50 +151,46 @@ function renderRoster() {
 window.selectChatTarget = function(targetUser) {
     activeChatTarget = targetUser;
     renderRoster();
-    chatInputArea.classList.remove('hidden');
+    if (chatInputArea) chatInputArea.classList.remove('hidden');
     
-    // --- 🛡️ EXCLUSIVE ADMIN MONITORING PRIVILEGES ---
     if (currentUser === "Admin") {
-        adminViewControls.classList.remove('hidden');
-        chatTargetHeader.textContent = `Monitoring: ${targetUser}`;
+        if (adminViewControls) adminViewControls.classList.remove('hidden');
+        if (chatTargetHeader) chatTargetHeader.textContent = `Monitoring: ${targetUser}`;
         
-        // Populate specific target's other active links
-        adminViewIntermediary.innerHTML = '';
-        companyUsers.forEach(u => {
-            if (u !== "Admin" && u !== targetUser) {
-                adminViewIntermediary.insertAdjacentHTML('beforeend', `<option value="${u}">Chat with ${u}</option>`);
-            }
-        });
-        adminViewIntermediary.onchange = renderMessages;
+        if (adminViewIntermediary) {
+            adminViewIntermediary.innerHTML = '';
+            companyUsers.forEach(u => {
+                if (u !== "Admin" && u !== targetUser) {
+                    adminViewIntermediary.insertAdjacentHTML('beforeend', `<option value="${u}">Chat with ${u}</option>`);
+                }
+            });
+            adminViewIntermediary.onchange = renderMessages;
+        }
     } else {
-        adminViewControls.classList.add('hidden');
-        chatTargetHeader.textContent = `Conversation with ${targetUser}`;
+        if (adminViewControls) adminViewControls.classList.add('hidden');
+        if (chatTargetHeader) chatTargetHeader.textContent = `Conversation with ${targetUser}`;
     }
     
     renderMessages();
 };
 
-// --- 💬 PRIVATE DIRECT MESSAGE RENDERING ENGINE ---
 function renderMessages() {
+    if (!chatMessages || !activeChatTarget) return;
     chatMessages.innerHTML = '';
-    if (!activeChatTarget) return;
 
     let viewer = currentUser;
     let peer = activeChatTarget;
 
-    // Admin surveillance path override redirect
-    if (currentUser === "Admin") {
+    if (currentUser === "Admin" && adminViewIntermediary) {
         viewer = activeChatTarget;
         peer = adminViewIntermediary.value;
     }
 
     messages.forEach(msg => {
-        // Filter out everything except the specific dialogue path between selected users
         const matchNormalPath = (msg.sender === viewer && msg.recipient === peer);
         const matchReversePath = (msg.sender === peer && msg.recipient === viewer);
         if (!matchNormalPath && !matchReversePath) return;
 
-        // Visual orientation context alignment tags
         const isMe = msg.sender === currentUser;
 
         let displayContent = '';
@@ -201,7 +201,6 @@ function renderMessages() {
                     <a href="${msg.fileData}" download="${msg.fileName}" class="inline-block text-center bg-white text-blue-700 px-2 py-0.5 rounded font-bold mt-1 shadow-sm">Download</a>
                 </div>`;
         } else {
-            // URL Link Finder Regex Match
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
             displayContent = msg.text.replace(urlPattern, '<a href="$1" target="_blank" class="underline text-yellow-200 font-bold">$1 🔗</a>');
         }
@@ -219,61 +218,73 @@ function renderMessages() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-sendChatBtn.onclick = function() {
-    const text = chatInput.value.trim();
-    if (!text || !activeChatTarget) return;
+if (sendChatBtn) {
+    sendChatBtn.onclick = function() {
+        if (!chatInput) return;
+        const text = chatInput.value.trim();
+        if (!text || !activeChatTarget) return;
 
-    messages.push({
-        sender: currentUser,
-        recipient: activeChatTarget,
-        text: text,
-        isFile: false
-    });
-
-    localStorage.setItem('crm_private_messages', JSON.stringify(messages));
-    chatInput.value = '';
-    renderMessages();
-};
-
-fileAttachBtn.onclick = () => chatFileInput.click();
-
-chatFileInput.onchange = function(e) {
-    const file = e.target.files[0];
-    if (!file || !activeChatTarget) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-        alert("File Rejected: Max size limit is 10MB.");
-        chatFileInput.value = '';
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(event) {
         messages.push({
             sender: currentUser,
             recipient: activeChatTarget,
-            isFile: true,
-            fileName: file.name,
-            fileData: event.target.result
+            text: text,
+            isFile: false
         });
+
         localStorage.setItem('crm_private_messages', JSON.stringify(messages));
-        chatFileInput.value = '';
+        chatInput.value = '';
         renderMessages();
     };
-    reader.readAsDataURL(file);
-};
+}
 
-toggleChatBtn.onclick = function() {
-    chatWindow.style.display = (chatWindow.style.display === 'none' || chatWindow.style.display === '') ? 'flex' : 'none';
-    if (chatWindow.style.display === 'flex') {
-        renderRoster();
-        renderMessages();
-    }
-};
+if (fileAttachBtn) fileAttachBtn.onclick = () => { if (chatFileInput) chatFileInput.click(); };
 
-closeChatBtn.onclick = () => chatWindow.style.display = 'none';
-userSearchInput.oninput = renderRoster;
+if (chatFileInput) {
+    chatFileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file || !activeChatTarget) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert("File Rejected: Max size limit is 10MB.");
+            chatFileInput.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            messages.push({
+                sender: currentUser,
+                recipient: activeChatTarget,
+                isFile: true,
+                fileName: file.name,
+                fileData: event.target.result
+            });
+            localStorage.setItem('crm_private_messages', JSON.stringify(messages));
+            chatFileInput.value = '';
+            renderMessages();
+        };
+        reader.readAsDataURL(file);
+    };
+}
+
+if (toggleChatBtn) {
+    toggleChatBtn.onclick = function() {
+        if (!chatWindow) return;
+        chatWindow.style.display = (chatWindow.style.display === 'none' || chatWindow.style.display === '') ? 'flex' : 'none';
+        if (chatWindow.style.display === 'flex') {
+            renderRoster();
+            renderMessages();
+        }
+    };
+}
+
+if (closeChatBtn) closeChatBtn.onclick = () => { if (chatWindow) chatWindow.style.display = 'none'; };
+if (userSearchInput) userSearchInput.oninput = renderRoster;
 if (searchInput) searchInput.oninput = renderTable;
-chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendChatBtn.onclick(); };
+if (chatInput) {
+    chatInput.onkeypress = (e) => { 
+        if (e.key === 'Enter' && sendChatBtn) sendChatBtn.onclick(); 
+    };
+}
 
 checkAuth();
